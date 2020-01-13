@@ -3,6 +3,8 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from Screenshot import Screenshot_Clipping
 from ensure_selenium_driver import check_for_driver
+import time
+from lxml import html
 
 
 def to_data_folder():
@@ -27,27 +29,52 @@ def grab_full_page(url):
     driver.quit()
 
 
+def get_element_info(element):
+    comment_depth = len(element.find_elements_by_xpath('./div/div/div[1]/div')) - 1
+    scan_points = element.find_element_by_xpath('./div/div/div[2]/div[2]/div[1]/span[1]').text.split(' ')[0]
+    try:
+        if len(scan_points) == 0:
+            prep_text = element.find_element_by_xpath('./div/div/div[2]/div[2]/div[2]/div').get_attribute('innerHTML')
+            text = html.fromstring(prep_text).text_content()
+            print(text)
+        if scan_points.__contains__('k'):
+            points = str(float(scan_points[:-1]) * 1000)
+        elif scan_points.__contains__('ore'):
+            points = 'hidden'
+        else:
+            points = scan_points
+    except Exception as err:
+        print('error', err)
+    prep_text = element.find_element_by_xpath('./div/div/div[2]/div[2]/div[2]/div').get_attribute('innerHTML')
+    text = html.fromstring(prep_text).text_content()
+    return comment_depth, points, text
+
+
 def grab_images(url):
     driver = webdriver.Firefox()
     driver.get(url)
     driver.maximize_window()
+    sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div[6]/div[1]/a/span').text.split(' ')[0]
+    if sleep_time.__contains__('k'):
+        sleep_time = int(sleep_time[:-1]) * 1000
+    else:
+        sleep_time = int(sleep_time)
+    sleep_time /= 80
     driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[*]/div/button').click()
-    elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[4]/div/div/div/div[*]')
+    time.sleep(sleep_time)
+    elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div/div/div/div/div')
     action = ActionChains(driver)
-    ob = Screenshot_Clipping.Screenshot()
     print(len(elements))
     for num_a, a in enumerate(elements):
         print(num_a, a)
         action.move_to_element(a)
-        try:
-            print(a.find_element_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a/text()'))
-        except Exception as err:
-            print('error', err)
-            if str(err).__contains__('TypeError'):
-                print('has name')
-                a.screenshot('hold.png')
-            pass
-
+        if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
+            depth, points, text = get_element_info(a)
+            points = '0' * (6 - len(points)) + points
+            try:
+                a.screenshot(points + '_' + str(num_a) + '.png')
+            except:
+                pass
         continue
         '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[4]/div/div/div/div[6]/div/div/div[2]/div[2]/div[1]/div[1]/a'
         '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[4]/div/div/div/div[8]/div/div/div[2]/div[2]/div[1]/div[1]/a'
@@ -62,7 +89,8 @@ def main():
     test_url = 'https://www.reddit.com/r/AskReddit/comments/emvveb/australian_bushfire_crisis/'
     small_url = 'https://www.reddit.com/r/AskReddit/comments/envpqo/homeless_redditors_what_is_keeping_you_going_rn/'
     fourteen_url = 'https://www.reddit.com/r/AskReddit/comments/eo0naz/a_big_muscular_man_appears_in_front_of_you_and/'
-    grab_images(fourteen_url)
+    stress_url = 'https://www.reddit.com/r/AskReddit/comments/enwojq/serious_reddit_what_are_some_free_or_cheap/'
+    grab_images(stress_url)
 
 
 if __name__ == '__main__':
