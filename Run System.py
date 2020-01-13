@@ -5,6 +5,7 @@ from Screenshot import Screenshot_Clipping
 from ensure_selenium_driver import check_for_driver
 import time
 from lxml import html
+from PIL import Image
 
 
 def to_data_folder():
@@ -50,13 +51,31 @@ def get_element_info(element):
     return comment_depth, points, text
 
 
+def stitch_comments(img_list):
+    img_objs = []
+    for a in img_list:
+        img_objs.append(Image.fromstring(a))
+    new_height, new_width = 0, 0
+    for a in img_objs:
+        obj_width, obj_height = a.size
+        if obj_width > new_width:
+            new_width = obj_width
+        new_height += obj_height
+    result = Image.new('RGB', (new_width, new_height))
+    height_offset = 0
+    for a in img_objs:
+        result.paste(im=a, box=(0, height_offset))
+        height_offset += a.size[1]
+    return result
+
+
 def grab_images(url):
     driver = webdriver.Firefox()
     driver.get(url)
     driver.maximize_window()
     sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div[6]/div[1]/a/span').text.split(' ')[0]
     if sleep_time.__contains__('k'):
-        sleep_time = int(sleep_time[:-1]) * 1000
+        sleep_time = round(float(sleep_time[:-1])) * 1000
     else:
         sleep_time = int(sleep_time)
     sleep_time /= 80
@@ -65,16 +84,31 @@ def grab_images(url):
     elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div/div/div/div/div')
     action = ActionChains(driver)
     print(len(elements))
+    stitch_queue = []
+    last_depth = -1
+    first_name = ''
     for num_a, a in enumerate(elements):
         print(num_a, a)
         action.move_to_element(a)
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
             depth, points, text = get_element_info(a)
-            points = '0' * (6 - len(points)) + points
+            points = '0' * (6 - len(points.replace('.', ''))) + points
+            file_name = points + '_' + str(num_a) + '.png'
+            stitch_queue.append(a.screenshot_as_png)
+            if depth == 0:
+                finished = stitch_comments(stitch_queue)
+                if last_depth == 0:
+                    finished.save(file_name)
+                else:
+                    finished.save(first_name)
+            else:
+                print(stitch_queue)
             try:
-                a.screenshot(points + '_' + str(num_a) + '.png')
+                a.screenshot(file_name)
             except:
                 pass
+            last_depth = depth
+            first_name = file_name
         continue
         '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[4]/div/div/div/div[6]/div/div/div[2]/div[2]/div[1]/div[1]/a'
         '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[4]/div/div/div/div[8]/div/div/div[2]/div[2]/div[1]/div[1]/a'
