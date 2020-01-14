@@ -6,6 +6,8 @@ from ensure_selenium_driver import check_for_driver
 import time
 from lxml import html
 from PIL import Image
+from PIL import ImageEnhance
+import io
 
 
 def to_data_folder():
@@ -55,7 +57,7 @@ def stitch_comments(img_list):
     print('th', img_list)
     img_objs = []
     for a in img_list:
-        img_objs.append(Image.frombytes('RGB', (848, a[1]), a[0]))
+        img_objs.append(Image.open(io.BytesIO(a[0])))
     new_height, new_width = 0, 0
     for a in img_objs:
         obj_width, obj_height = a.size
@@ -65,7 +67,7 @@ def stitch_comments(img_list):
     result = Image.new('RGB', (new_width, new_height))
     height_offset = 0
     for a in img_objs:
-        result.paste(im=a, box=(0, height_offset))
+        result.paste(im=ImageEnhance.Sharpness(a).enhance(2), box=(0, height_offset))
         height_offset += a.size[1]
     return result
 
@@ -125,7 +127,7 @@ def main():
     small_url = 'https://www.reddit.com/r/AskReddit/comments/envpqo/homeless_redditors_what_is_keeping_you_going_rn/'
     fourteen_url = 'https://www.reddit.com/r/AskReddit/comments/eo0naz/a_big_muscular_man_appears_in_front_of_you_and/'
     stress_url = 'https://www.reddit.com/r/AskReddit/comments/enwojq/serious_reddit_what_are_some_free_or_cheap/'
-    grab_images(fourteen_url)
+    grab_images(stress_url)
 
 
 if __name__ == '__main__':
