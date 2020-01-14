@@ -8,6 +8,7 @@ from lxml import html
 from PIL import Image
 from PIL import ImageEnhance
 import io
+from gtts import gTTS
 
 
 def to_data_folder():
@@ -72,12 +73,23 @@ def stitch_comments(img_list):
     return result
 
 
+def use_tts(text, name):
+    obj = gTTS(text=text)
+    obj.tokenizer_func(text)
+    obj.save(name + '.mp3')
+    print(name, len(text.split(' ')))
+
+
 def grab_images(url):
     driver = webdriver.Firefox()
     driver.get(url)
     driver.maximize_window()
+    if not os.path.isdir(url_dir := url.split('/')[-2]):
+        os.mkdir(url_dir)
+    os.chdir(url_dir)
+    head = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]')
+    head.screenshot('Title.png')
     sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div/div[1]/a/span').text.split(' ')[0]
-                                              # '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div[5]/div[1]/a/span'
     if sleep_time.__contains__('k'):
         sleep_time = round(float(sleep_time[:-1])) * 1000
     else:
@@ -92,31 +104,36 @@ def grab_images(url):
     last_depth = -1
     first_name = ''
     total_height = 0
+    text_string = ''
     for num_a, a in enumerate(elements):
         print(num_a, a)
         action.move_to_element(a)
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
             depth, points, text = get_element_info(a)
-            print(':', depth)
+            print(':', depth, text)
             points = '0' * (6 - len(points.replace('.', ''))) + points
-            file_name = points + '_' + str(num_a) + '.png'
+            file_name = points + '_' + str(num_a)
             if depth == 0:
                 if last_depth != -1:
                     finished = stitch_comments(stitch_queue)
-                    finished.save(first_name)
+                    finished.save(first_name + '.png')
+                    print('text', text_string)
+                    use_tts(text_string, first_name)
                 first_name = file_name
                 total_height = 0
+                text_string = ''
                 stitch_queue.clear()
             else:
                 print(len(stitch_queue))
-            last_depth = depth
             try:
                 print('s', a.size)
                 stitch_queue.append((a.screenshot_as_png, int(a.size['height'])))
                 total_height += int(a.size['height'])
+                text_string += text + '. '
             except Exception as err:
                 print('err', err)
                 input('error>')
+            last_depth = depth
     driver.quit()
 
 
