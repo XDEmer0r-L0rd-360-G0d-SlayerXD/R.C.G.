@@ -17,10 +17,6 @@ def to_data_folder():
     os.chdir('data')
 
 
-def grab_prompt(url):
-    pass
-
-
 def grab_full_page(url):
     ob = Screenshot_Clipping.Screenshot()
     driver = webdriver.Firefox()
@@ -58,7 +54,7 @@ def stitch_comments(img_list):
     print('th', img_list)
     img_objs = []
     for a in img_list:
-        img_objs.append(Image.open(io.BytesIO(a[0])))
+        img_objs.append(Image.open(io.BytesIO(a)))
     new_height, new_width = 0, 0
     for a in img_objs:
         obj_width, obj_height = a.size
@@ -88,13 +84,14 @@ def grab_images(url):
         os.mkdir(url_dir)
     os.chdir(url_dir)
     head = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]')
-    head.screenshot('Title.png')
+    cleaned_head = stitch_comments([head.screenshot_as_png])
+    cleaned_head.save('Head.png')
     sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div/div[1]/a/span').text.split(' ')[0]
     if sleep_time.__contains__('k'):
         sleep_time = round(float(sleep_time[:-1])) * 1000
     else:
         sleep_time = int(sleep_time)
-    sleep_time /= 1000
+    sleep_time /= 500
     driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[*]/div/button').click()
     time.sleep(sleep_time)
     elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div/div/div/div/div')
@@ -103,7 +100,6 @@ def grab_images(url):
     stitch_queue = []
     last_depth = -1
     first_name = ''
-    total_height = 0
     text_string = ''
     for num_a, a in enumerate(elements):
         print(num_a, a)
@@ -120,15 +116,13 @@ def grab_images(url):
                     print('text', text_string)
                     use_tts(text_string, first_name)
                 first_name = file_name
-                total_height = 0
                 text_string = ''
                 stitch_queue.clear()
             else:
                 print(len(stitch_queue))
             try:
                 print('s', a.size)
-                stitch_queue.append((a.screenshot_as_png, int(a.size['height'])))
-                total_height += int(a.size['height'])
+                stitch_queue.append(a.screenshot_as_png)
                 text_string += text + '. '
             except Exception as err:
                 print('err', err)
