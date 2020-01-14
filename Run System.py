@@ -52,9 +52,10 @@ def get_element_info(element):
 
 
 def stitch_comments(img_list):
+    print('th', img_list)
     img_objs = []
     for a in img_list:
-        img_objs.append(Image.fromstring(a))
+        img_objs.append(Image.frombytes('RGB', (848, a[1]), a[0]))
     new_height, new_width = 0, 0
     for a in img_objs:
         obj_width, obj_height = a.size
@@ -73,12 +74,13 @@ def grab_images(url):
     driver = webdriver.Firefox()
     driver.get(url)
     driver.maximize_window()
-    sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div[6]/div[1]/a/span').text.split(' ')[0]
+    sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div/div[1]/a/span').text.split(' ')[0]
+                                              # '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div[5]/div[1]/a/span'
     if sleep_time.__contains__('k'):
         sleep_time = round(float(sleep_time[:-1])) * 1000
     else:
         sleep_time = int(sleep_time)
-    sleep_time /= 80
+    sleep_time /= 1000
     driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[*]/div/button').click()
     time.sleep(sleep_time)
     elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div/div/div/div/div')
@@ -87,33 +89,32 @@ def grab_images(url):
     stitch_queue = []
     last_depth = -1
     first_name = ''
+    total_height = 0
     for num_a, a in enumerate(elements):
         print(num_a, a)
         action.move_to_element(a)
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
             depth, points, text = get_element_info(a)
+            print(':', depth)
             points = '0' * (6 - len(points.replace('.', ''))) + points
             file_name = points + '_' + str(num_a) + '.png'
-            stitch_queue.append(a.screenshot_as_png)
             if depth == 0:
-                finished = stitch_comments(stitch_queue)
-                if last_depth == 0:
-                    finished.save(file_name)
-                else:
+                if last_depth != -1:
+                    finished = stitch_comments(stitch_queue)
                     finished.save(first_name)
+                first_name = file_name
+                total_height = 0
+                stitch_queue.clear()
             else:
-                print(stitch_queue)
-            try:
-                a.screenshot(file_name)
-            except:
-                pass
+                print(len(stitch_queue))
             last_depth = depth
-            first_name = file_name
-        continue
-        '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[4]/div/div/div/div[6]/div/div/div[2]/div[2]/div[1]/div[1]/a'
-        '/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[4]/div/div/div/div[8]/div/div/div[2]/div[2]/div[1]/div[1]/a'
-        img_url = ob.get_element(driver, a, '.')
-        print('img url', img_url)
+            try:
+                print('s', a.size)
+                stitch_queue.append((a.screenshot_as_png, int(a.size['height'])))
+                total_height += int(a.size['height'])
+            except Exception as err:
+                print('err', err)
+                input('error>')
     driver.quit()
 
 
@@ -124,7 +125,7 @@ def main():
     small_url = 'https://www.reddit.com/r/AskReddit/comments/envpqo/homeless_redditors_what_is_keeping_you_going_rn/'
     fourteen_url = 'https://www.reddit.com/r/AskReddit/comments/eo0naz/a_big_muscular_man_appears_in_front_of_you_and/'
     stress_url = 'https://www.reddit.com/r/AskReddit/comments/enwojq/serious_reddit_what_are_some_free_or_cheap/'
-    grab_images(stress_url)
+    grab_images(fourteen_url)
 
 
 if __name__ == '__main__':
