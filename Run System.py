@@ -54,7 +54,10 @@ def stitch_comments(img_list):
     print('th', img_list)
     img_objs = []
     for a in img_list:
-        img_objs.append(Image.open(io.BytesIO(a)))
+        try:
+            img_objs.append(Image.open(io.BytesIO(a)))
+        except:
+            return False
     new_height, new_width = 0, 0
     for a in img_objs:
         obj_width, obj_height = a.size
@@ -70,10 +73,21 @@ def stitch_comments(img_list):
 
 
 def use_tts(text, name):
-    obj = gTTS(text=text)
-    obj.tokenizer_func(text)
-    obj.save(name + '.mp3')
-    print(name, len(text.split(' ')))
+    custom_text = ''
+    for a in text.split(' '):
+        if a.__contains__('http'):
+            a = a[:a.index('http')]
+        if a.__contains__('but') or a.__contains__('or') or a.__contains__('and'):
+            a = ', ' + a
+        custom_text += a
+    text = custom_text
+    try:
+        obj = gTTS(text=text)
+        obj.tokenizer_func(text)
+        obj.save(name + '.mp3')
+        print(name, len(text.split(' ')))
+    except:
+        return
 
 
 def grab_images(url):
@@ -85,13 +99,15 @@ def grab_images(url):
     os.chdir(url_dir)
     head = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]')
     cleaned_head = stitch_comments([head.screenshot_as_png])
+    head_text = head.find_element_by_xpath('./div/div[3]/div[1]/div/h1').text
     cleaned_head.save('Head.png')
+    use_tts(head_text, 'head')
     sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div/div[1]/a/span').text.split(' ')[0]
     if sleep_time.__contains__('k'):
         sleep_time = round(float(sleep_time[:-1])) * 1000
     else:
         sleep_time = int(sleep_time)
-    sleep_time /= 500
+    sleep_time /= 80
     driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[*]/div/button').click()
     time.sleep(sleep_time)
     elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div/div/div/div/div')
@@ -107,11 +123,13 @@ def grab_images(url):
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
             depth, points, text = get_element_info(a)
             print(':', depth, text)
-            points = '0' * (6 - len(points.replace('.', ''))) + points
+            points = '0' * (6 - len(points.replace('.', ''))) + points.replace('.', '')
             file_name = points + '_' + str(num_a)
             if depth == 0:
                 if last_depth != -1:
                     finished = stitch_comments(stitch_queue)
+                    if type(finished) is bool:
+                        continue
                     finished.save(first_name + '.png')
                     print('text', text_string)
                     use_tts(text_string, first_name)
@@ -138,7 +156,8 @@ def main():
     small_url = 'https://www.reddit.com/r/AskReddit/comments/envpqo/homeless_redditors_what_is_keeping_you_going_rn/'
     fourteen_url = 'https://www.reddit.com/r/AskReddit/comments/eo0naz/a_big_muscular_man_appears_in_front_of_you_and/'
     stress_url = 'https://www.reddit.com/r/AskReddit/comments/enwojq/serious_reddit_what_are_some_free_or_cheap/'
-    grab_images(stress_url)
+    url_to_use = 'https://www.reddit.com/r/AskReddit/comments/eoss5j/who_here_has_actually_married_their_lets_get/'
+    grab_images(url_to_use)
 
 
 if __name__ == '__main__':
