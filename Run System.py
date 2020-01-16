@@ -117,6 +117,7 @@ def grab_images(url):
     last_depth = -1
     first_name = ''
     text_string = ''
+    count_limit = 0
     for num_a, a in enumerate(elements):
         print(num_a, a)
         action.move_to_element(a)
@@ -133,6 +134,10 @@ def grab_images(url):
                     finished.save(first_name + '.png')
                     print('text', text_string)
                     use_tts(text_string, first_name)
+                    count_limit += 1
+                    if count_limit > 100:
+                        print('100 posts saved. Stopping to conserve space.')
+                        exit()
                 first_name = file_name
                 text_string = ''
                 stitch_queue.clear()
@@ -156,7 +161,7 @@ def main():
     small_url = 'https://www.reddit.com/r/AskReddit/comments/envpqo/homeless_redditors_what_is_keeping_you_going_rn/'
     fourteen_url = 'https://www.reddit.com/r/AskReddit/comments/eo0naz/a_big_muscular_man_appears_in_front_of_you_and/'
     stress_url = 'https://www.reddit.com/r/AskReddit/comments/enwojq/serious_reddit_what_are_some_free_or_cheap/'
-    url_to_use = 'https://www.reddit.com/r/AskReddit/comments/eoss5j/who_here_has_actually_married_their_lets_get/'
+    url_to_use = 'https://www.reddit.com/r/AskReddit/comments/eosez4/redditors_with_good_handwriting_what_are_some/'
     grab_images(url_to_use)
 
 
