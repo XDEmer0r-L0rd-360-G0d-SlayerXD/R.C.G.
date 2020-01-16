@@ -124,7 +124,7 @@ def grab_images(url):
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
             depth, points, text = get_element_info(a)
             print(':', depth, text)
-            points = '0' * (6 - len(points.replace('.', ''))) + points.replace('.', '')
+            points = '0' * (6 - len(points.replace('.0', ''))) + points.replace('.0', '')
             file_name = points + '_' + str(num_a)
             if depth == 0:
                 if last_depth != -1:
