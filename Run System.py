@@ -9,6 +9,7 @@ from PIL import Image
 from PIL import ImageEnhance
 import io
 from gtts import gTTS
+import sys
 
 
 def to_data_folder():
@@ -101,7 +102,7 @@ def grab_images(url):
     cleaned_head = stitch_comments([head.screenshot_as_png])
     head_text = head.find_element_by_xpath('./div/div[3]/div[1]/div/h1').text
     cleaned_head.save('Head.png')
-    use_tts(head_text, 'head')
+    use_tts(head_text, 'Head')
     sleep_time = driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[1]/div/div/div[1]/a/span').text.split(' ')[0]
     if sleep_time.__contains__('k'):
         sleep_time = round(float(sleep_time[:-1])) * 1000
@@ -119,11 +120,9 @@ def grab_images(url):
     text_string = ''
     count_limit = 0
     for num_a, a in enumerate(elements):
-        print(num_a, a)
         action.move_to_element(a)
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
             depth, points, text = get_element_info(a)
-            print(':', depth, text)
             points = '0' * (6 - len(points.replace('.0', ''))) + points.replace('.0', '')
             file_name = points + '_' + str(num_a)
             if depth == 0:
@@ -132,9 +131,10 @@ def grab_images(url):
                     if type(finished) is bool:
                         continue
                     finished.save(first_name + '.png')
-                    print('text', text_string)
+                    print('text:', text_string)
                     use_tts(text_string, first_name)
                     count_limit += 1
+                    print(count_limit)
                     if count_limit > 100:
                         print('100 posts saved. Stopping to conserve space.')
                         exit()
@@ -142,7 +142,7 @@ def grab_images(url):
                 text_string = ''
                 stitch_queue.clear()
             else:
-                print(len(stitch_queue))
+                print(depth, len(stitch_queue))
             try:
                 print('s', a.size)
                 stitch_queue.append(a.screenshot_as_png)
@@ -162,7 +162,10 @@ def main():
     fourteen_url = 'https://www.reddit.com/r/AskReddit/comments/eo0naz/a_big_muscular_man_appears_in_front_of_you_and/'
     stress_url = 'https://www.reddit.com/r/AskReddit/comments/enwojq/serious_reddit_what_are_some_free_or_cheap/'
     url_to_use = 'https://www.reddit.com/r/AskReddit/comments/eosez4/redditors_with_good_handwriting_what_are_some/'
+    if len(sys.argv) > 1:
+        url_to_use = sys.argv[1]
     grab_images(url_to_use)
+    input('Ready to merge files>')
 
 
 if __name__ == '__main__':
