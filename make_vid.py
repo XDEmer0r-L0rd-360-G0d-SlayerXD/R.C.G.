@@ -53,7 +53,7 @@ def make_vid(names_list, files_dir):
     audio_content = mpy.concatenate_audioclips(audio_channel)
     vid_content = mpy.concatenate_videoclips(vid_channel).set_audio(audio_content).resize((1280, 720))
     # todo working write here
-    vid_content.write_videofile('later.mp4', fps=30)
+    vid_content.write_videofile(files_dir + '.mp4', fps=30)
     print(os.getcwd())
     exit()
 

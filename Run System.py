@@ -6,10 +6,12 @@ from ensure_selenium_driver import check_for_driver
 import time
 from lxml import html
 from PIL import Image
-from PIL import ImageEnhance
+from PIL import ImageEnhance, ImageOps
 import io
 from gtts import gTTS
 import sys
+import make_vid
+import winsound
 
 
 def to_data_folder():
@@ -52,7 +54,7 @@ def get_element_info(element):
 
 
 def stitch_comments(img_list):
-    print('th', img_list)
+    # print('th', img_list)
     img_objs = []
     for a in img_list:
         try:
@@ -70,6 +72,7 @@ def stitch_comments(img_list):
     for a in img_objs:
         result.paste(im=ImageEnhance.Sharpness(a).enhance(2), box=(0, height_offset))
         height_offset += a.size[1]
+    result = ImageOps.invert(result)
     return result
 
 
@@ -119,6 +122,7 @@ def grab_images(url):
     first_name = ''
     text_string = ''
     count_limit = 0
+    text_size_limit = 0
     for num_a, a in enumerate(elements):
         action.move_to_element(a)
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
@@ -127,6 +131,7 @@ def grab_images(url):
             file_name = points + '_' + str(num_a)
             if depth == 0:
                 if last_depth != -1:
+                    text_size_limit = 0
                     finished = stitch_comments(stitch_queue)
                     if type(finished) is bool:
                         continue
@@ -137,7 +142,8 @@ def grab_images(url):
                     print(count_limit)
                     if count_limit > 100:
                         print('100 posts saved. Stopping to conserve space.')
-                        exit()
+                        driver.quit()
+                        return
                 first_name = file_name
                 text_string = ''
                 stitch_queue.clear()
@@ -145,8 +151,9 @@ def grab_images(url):
                 print(depth, len(stitch_queue))
             try:
                 print('s', a.size)
-                stitch_queue.append(a.screenshot_as_png)
-                text_string += text + '. '
+                if text_size_limit < 650:
+                    stitch_queue.append(a.screenshot_as_png)
+                    text_string += text + '. '
             except Exception as err:
                 print('err', err)
                 input('error>')
@@ -164,8 +171,12 @@ def main():
     url_to_use = 'https://www.reddit.com/r/AskReddit/comments/eosez4/redditors_with_good_handwriting_what_are_some/'
     if len(sys.argv) > 1:
         url_to_use = sys.argv[1]
+    dir_name = url_to_use.split('/')[-2]
     grab_images(url_to_use)
-    input('Ready to merge files>')
+    names = make_vid.get_names()
+    make_vid.make_vid(names, dir_name)
+    winsound.Beep(880, 2000)
+    input('done!')
 
 
 if __name__ == '__main__':
