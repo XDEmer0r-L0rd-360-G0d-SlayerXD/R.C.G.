@@ -111,7 +111,7 @@ def grab_images(url):
         sleep_time = round(float(sleep_time[:-1])) * 1000
     else:
         sleep_time = int(sleep_time)
-    sleep_time /= 100
+    sleep_time /= 1000
     driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[*]/div/button').click()
     time.sleep(sleep_time)
     elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div/div/div/div/div')
@@ -140,7 +140,7 @@ def grab_images(url):
                     use_tts(text_string, first_name)
                     count_limit += 1
                     print(count_limit)
-                    if count_limit > 50:
+                    if count_limit > 5:
                         print('100 posts saved. Stopping to conserve space.')
                         driver.quit()
                         return

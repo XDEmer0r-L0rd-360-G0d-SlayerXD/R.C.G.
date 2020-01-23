@@ -27,6 +27,7 @@ def make_vid(names_list, files_dir):
     print(names_list)
     transition_clip = mpy.AudioFileClip('Karate_hit[transition].mp3').set_end(.8)
     silence = mpy.AudioFileClip('1-second-of-silence.mp3').set_end(1)
+    bg_song = mpy.AudioFileClip('Some_of_You.mp3')
     os.chdir('..')
     os.chdir(files_dir)
     vid_len = 0
@@ -34,7 +35,7 @@ def make_vid(names_list, files_dir):
     audio_channel = []
     vid_channel = []
     # todo make 600 again and fix load wait time
-    while vid_len < 600 and len(names_list) > 0:
+    while vid_len < 6 and len(names_list) > 0:
         active = names_list.pop(0)
         content_clips.append(active[0])
         current_audio = mpy.AudioFileClip(active[1], fps=44100)
@@ -56,6 +57,17 @@ def make_vid(names_list, files_dir):
         del audio_set
     print('merging')
     audio_content = mpy.concatenate_audioclips(audio_channel)
+    bg_len = 0
+    bg_content = []
+    while bg_len < audio_content.duration:
+        if bg_len + bg_song.duration > audio_content.duration:
+            bg_content.append(bg_song.set_end(audio_content.duration - bg_len))
+            bg_len += 999
+        else:
+            bg_content.append(bg_song)
+            bg_len += bg_song.duration
+    bg_ready = mpy.concatenate_audioclips(bg_content).volumex(.1)
+    audio_content = mpy.CompositeAudioClip([audio_content, bg_ready])
     vid_content = mpy.concatenate_videoclips(vid_channel).set_audio(audio_content).resize((1280, 720))
     vid_content.write_videofile(files_dir + '.mp4', fps=30)
     print(os.getcwd())
