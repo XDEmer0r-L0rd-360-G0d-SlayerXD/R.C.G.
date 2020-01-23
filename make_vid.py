@@ -33,7 +33,7 @@ def make_vid(names_list, files_dir):
     content_clips = []
     audio_channel = []
     vid_channel = []
-    # todo make 600 again
+    # todo make 600 again and fix load wait time
     while vid_len < 600 and len(names_list) > 0:
         active = names_list.pop(0)
         content_clips.append(active[0])
@@ -43,6 +43,11 @@ def make_vid(names_list, files_dir):
             print('ran shortener')
             audio_set = audio_set.set_end(float(str(audio_set.duration)[:6]))
         vid_set = mpy.ImageClip(active[0], duration=audio_set.duration + (-.7 if vid_len == 0 else (.7 if vid_len + audio_set.duration > 600 else 0)))
+        top_margin = max(0, round((720 - (vid_set.h * 2)) / 2))
+        bottom_margin = max(0, (720 - top_margin - (vid_set.h * 2)))
+        if vid_set.h < 720:
+            print('margins', top_margin, bottom_margin)
+            vid_set = vid_set.margin(top=top_margin, bottom=bottom_margin)
         vid_len += audio_set.duration
         audio_channel.append(audio_set)
         vid_channel.append(vid_set)
@@ -52,7 +57,6 @@ def make_vid(names_list, files_dir):
     print('merging')
     audio_content = mpy.concatenate_audioclips(audio_channel)
     vid_content = mpy.concatenate_videoclips(vid_channel).set_audio(audio_content).resize((1280, 720))
-    # todo working write here
     vid_content.write_videofile(files_dir + '.mp4', fps=30)
     print(os.getcwd())
     exit()
