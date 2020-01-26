@@ -67,9 +67,13 @@ def stitch_comments(img_list):
         if obj_width > new_width:
             new_width = obj_width
         new_height += obj_height
-    result = Image.new('RGB', (new_width, new_height))
+    try:
+        result = Image.new('RGB', (new_width, new_height))
+    except Exception:
+        return False
     height_offset = 0
     for a in img_objs:
+        print('size before paste', a.size)
         result.paste(im=ImageEnhance.Sharpness(a).enhance(2), box=(0, height_offset))
         height_offset += a.size[1]
     result = ImageOps.invert(result)
@@ -78,6 +82,9 @@ def stitch_comments(img_list):
 
 def use_tts(text, name):
     custom_text = ''
+    # fixme full caps sentences, ensure break by quote start, newlines don't pause, new comments don't pause,
+    #  ... doesn't pause well, maybe add pauses between caps words, extra letters stuffed into word,
+    #  rarely words will get spelled out, things like idk and rn, has said dot dot,
     for a in text.split(' '):
         if a.__contains__('http'):
             a = a[:a.index('http')]
@@ -111,7 +118,7 @@ def grab_images(url):
         sleep_time = round(float(sleep_time[:-1])) * 1000
     else:
         sleep_time = int(sleep_time)
-    sleep_time /= 1000
+    sleep_time /= 200
     driver.find_element_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div[*]/div/button').click()
     time.sleep(sleep_time)
     elements = driver.find_elements_by_xpath('/html/body/div[1]/div/div/div/div[2]/div/div[3]/div[1]/div[2]/div/div/div/div/div')
@@ -127,6 +134,7 @@ def grab_images(url):
         action.move_to_element(a)
         if len(a.find_elements_by_xpath('./div/div/div[2]/div[2]/div[1]/div[1]/a')) == 1:
             depth, points, text = get_element_info(a)
+            text_size_limit += len(text)
             points = '0' * (6 - len(points.replace('.0', ''))) + points.replace('.0', '')
             file_name = points + '_' + str(num_a)
             if depth == 0:
@@ -135,13 +143,16 @@ def grab_images(url):
                     finished = stitch_comments(stitch_queue)
                     if type(finished) is bool:
                         continue
-                    finished.save(first_name + '.png')
+                    try:
+                        finished.save(first_name + '.png')
+                    except Exception:
+                        continue
                     print('text:', text_string)
                     use_tts(text_string, first_name)
                     count_limit += 1
                     print(count_limit)
-                    if count_limit > 5:
-                        print('100 posts saved. Stopping to conserve space.')
+                    if count_limit > 50:
+                        print('50 posts saved. Stopping to conserve space.')
                         driver.quit()
                         return
                 first_name = file_name
@@ -151,7 +162,7 @@ def grab_images(url):
                 print(depth, len(stitch_queue))
             try:
                 print('s', a.size)
-                if text_size_limit < 650:
+                if text_size_limit < 700:
                     stitch_queue.append(a.screenshot_as_png)
                     text_string += text + '. '
             except Exception as err:
@@ -161,22 +172,23 @@ def grab_images(url):
     driver.quit()
 
 
-def main():
+def main(url_to_use=''):
     to_data_folder()
     check_for_driver('firefox')
     test_url = 'https://www.reddit.com/r/AskReddit/comments/emvveb/australian_bushfire_crisis/'
     small_url = 'https://www.reddit.com/r/AskReddit/comments/envpqo/homeless_redditors_what_is_keeping_you_going_rn/'
     fourteen_url = 'https://www.reddit.com/r/AskReddit/comments/eo0naz/a_big_muscular_man_appears_in_front_of_you_and/'
     stress_url = 'https://www.reddit.com/r/AskReddit/comments/enwojq/serious_reddit_what_are_some_free_or_cheap/'
-    url_to_use = 'https://www.reddit.com/r/AskReddit/comments/eosez4/redditors_with_good_handwriting_what_are_some/'
+    # url_to_use = 'https://www.reddit.com/r/AskReddit/comments/eosez4/redditors_with_good_handwriting_what_are_some/'
     if len(sys.argv) > 1:
         url_to_use = sys.argv[1]
+    print(sys.argv)
+    # todo when called via os.system, python is not in argv
     dir_name = url_to_use.split('/')[-2]
     grab_images(url_to_use)
     names = make_vid.get_names()
     make_vid.make_vid(names, dir_name)
     winsound.Beep(880, 2000)
-    input('done!')
 
 
 if __name__ == '__main__':
